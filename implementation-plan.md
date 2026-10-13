@@ -2,13 +2,11 @@
 
 ## Phase 1 — Foundation
 
-- Initialize app scaffolding and environment configuration.
-- Add Docker setup for the application and database.
-- Configure Prisma and the database connection.
-- Create the initial schema: users, tickets, messages, categories, and knowledge-base articles.
-- Run migrations and add development seed data.
-- Seed the initial administrator account.
-- Establish shared UI layout, navigation, and API/error-response conventions.
+- Initialize mono repo structure (`/client`, `/server`).
+- Set up Express server with typescript.
+- Set up React app with typescript.
+- Set up PostgreSQL database.
+
 
 ## Phase 2 — Authentication & Access Control
 
