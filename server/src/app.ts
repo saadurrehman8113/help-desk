@@ -3,13 +3,26 @@ import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { getDatabase } from './database.js';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './auth.js';
 
 export const app = express();
 app.disable('x-powered-by');
+app.all('/api/auth/{*path}', toNodeHandler(auth));
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok', service: 'help-desk-api' });
+});
+
+app.get('/api/health/database', async (_request, response) => {
+  try {
+    await getDatabase().$queryRaw`SELECT 1`;
+    response.json({ status: 'ok', database: 'connected' });
+  } catch {
+    response.status(503).json({ status: 'error', database: 'unavailable' });
+  }
 });
 
 app.use('/api', (_request, response) => {

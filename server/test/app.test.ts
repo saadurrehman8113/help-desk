@@ -29,3 +29,15 @@ test('malformed JSON returns a safe 400 response', async () => {
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: 'Invalid JSON body' });
 });
+
+test('database health returns 503 without exposing connection configuration', async () => {
+  const originalUrl = process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL;
+  try {
+    const response = await fetch(`${baseUrl}/api/health/database`);
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { status: 'error', database: 'unavailable' });
+  } finally {
+    if (originalUrl !== undefined) process.env.DATABASE_URL = originalUrl;
+  }
+});
