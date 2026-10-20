@@ -1,4 +1,4 @@
-﻿# Help Desk
+# Help Desk
 
 A full-stack TypeScript foundation with React, Vite, Express, Prisma 7, and PostgreSQL. The client checks the live API connection with loading, success, failure, and retry states.
 
@@ -89,11 +89,24 @@ The schema includes Better Auth's User, Account, Session, and Verification model
 
 ## Authentication
 
-Better Auth provides public email/password sign-up and database-backed sessions under `/api/auth`. Session cookies contain the session token; cookie caching is disabled by default, so session validation reads PostgreSQL. Passwords are hashed by Better Auth. Email verification and password-reset email delivery are not configured.
+Users have one role: `admin` or `agent`. Existing users and newly provisioned users default to `agent`. The role is returned with the authenticated user and cannot be set through user-facing auth input; it does not add application permission checks by itself.
+
+### Seed an admin
+
+Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the ignored `server/.env`, then run:
+
+```sh
+npm run db:deploy -w server
+npm run db:seed -w server
+```
+
+The seed creates or promotes the matching user to `admin` and stores a Better Auth password hash in its credential account. Rerunning updates that user's password from the environment without duplicating the user/account and revokes their existing sessions. Public sign-up stays disabled.
+
+Better Auth provides email/password sign-in and database-backed sessions under `/api/auth`. Session cookies contain the session token; cookie caching is disabled by default, so session validation reads PostgreSQL. Passwords are hashed by Better Auth. Public sign-up is disabled; existing users can still sign in. Email verification and password-reset email delivery are not configured.
 
 | Endpoint | Request body |
 | --- | --- |
-| `POST /api/auth/sign-up/email` | `{ "name": "Example", "email": "person@example.com", "password": "a-long-password" }` |
+| `POST /api/auth/sign-up/email` | Disabled; returns `EMAIL_PASSWORD_SIGN_UP_DISABLED` (400) |
 | `POST /api/auth/sign-in/email` | `{ "email": "person@example.com", "password": "a-long-password" }` |
 | `GET /api/auth/get-session` | None; send the session cookie |
 | `POST /api/auth/sign-out` | `{}`; send the session cookie |
@@ -101,14 +114,14 @@ Better Auth provides public email/password sign-up and database-backed sessions 
 For example, from a terminal supporting curl:
 
 ```sh
-curl -c cookies.txt -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -d '{"name":"Example","email":"person@example.com","password":"a-long-password"}' http://localhost:3000/api/auth/sign-up/email
+curl -c cookies.txt -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -d '{"email":"person@example.com","password":"a-long-password"}' http://localhost:3000/api/auth/sign-in/email
 curl -b cookies.txt http://localhost:3000/api/auth/get-session
 curl -b cookies.txt -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -d '{}' http://localhost:3000/api/auth/sign-out
 ```
 
 The existing Vite `/api` proxy supports same-origin browser requests. The local Vite origin `http://localhost:5173` is trusted; the configured Better Auth base URL is trusted automatically. Use the same-origin deployment in production and update `BETTER_AUTH_URL` accordingly.
 
-To run the database-backed HTTP smoke test, generate Prisma Client, then run `npx tsx scripts/smoke-auth.ts` from `server/`. It creates a temporary user, verifies sign-up, hashed passwords, incorrect-password rejection, sign-in, persisted sessions, and sign-out revocation, then removes its user and related records.
+To run the database-backed HTTP smoke test, generate Prisma Client, then run `npx tsx scripts/smoke-auth.ts` from `server/`. It provisions a temporary user directly in PostgreSQL, verifies that public sign-up is blocked, hashed passwords, incorrect-password rejection, sign-in, persisted sessions, and sign-out revocation, then removes its user and related records.
 
 ## API
 

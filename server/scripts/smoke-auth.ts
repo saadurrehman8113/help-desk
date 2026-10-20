@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
+import { hashPassword } from 'better-auth/crypto';
 import { app } from '../src/app.js';
 import { getDatabase, disconnectDatabase } from '../src/database.js';
 
@@ -25,12 +26,19 @@ const cookieFrom = (response: Response) => {
 
 try {
   const signup = await post('/sign-up/email', { name: 'Auth smoke test', email, password });
-  assert.equal(signup.status, 200, await signup.clone().text());
-  const user = await db.user.findUniqueOrThrow({ where: { email } });
+  assert.equal(signup.status, 400, await signup.clone().text());
+  assert.equal((await signup.json()).code, 'EMAIL_PASSWORD_SIGN_UP_DISABLED');
+  assert.equal(await db.user.count({ where: { email } }), 0);
+  const userId = randomUUID();
+  const user = await db.user.create({ data: {
+    id: userId, name: 'Auth smoke test', email,
+    accounts: { create: {
+      id: randomUUID(), accountId: userId, providerId: 'credential',
+      password: await hashPassword(password),
+    } },
+  } });
   const account = await db.account.findFirstOrThrow({ where: { userId: user.id } });
   assert(account.password && account.password !== password, 'Password must be hashed');
-  const signupCookie = cookieFrom(signup);
-  assert.equal((await post('/sign-out', {}, signupCookie)).status, 200);
   const badLogin = await post('/sign-in/email', { email, password: randomUUID() });
   assert.equal(badLogin.status, 401);
   const signin = await post('/sign-in/email', { email, password });
@@ -44,7 +52,7 @@ try {
   assert.equal(await db.session.count({ where: { userId: user.id } }), 0);
   const revoked = await fetch(`${base}/get-session`, { headers: { cookie } });
   assert.equal(await revoked.json(), null);
-  console.log('Auth smoke passed: sign-up, password hashing, invalid password, sign-in, DB session, session retrieval, sign-out, revoked cookie.');
+  console.log('Auth smoke passed: sign-up blocked, password hashing, invalid password, sign-in, DB session, session retrieval, sign-out, revoked cookie.');
 } finally {
   await db.user.deleteMany({ where: { email } });
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
