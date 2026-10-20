@@ -70,6 +70,7 @@ Copy `server/.env.example` to `server/.env`. The server and Prisma CLI load that
 | `DATABASE_URL` | required | PostgreSQL connection URL targeting `help-desk` |
 | `BETTER_AUTH_SECRET` | required | Random authentication secret, at least 32 characters; keep private and stable |
 | `BETTER_AUTH_URL` | `http://localhost:3000` in the example | Public API base URL; set to your HTTPS origin in production |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | empty; `http://localhost:5173` in the example | Comma-separated additional trusted frontend origins; surrounding whitespace and empty entries are ignored |
 
 If you change the backend port, update the proxy target in `client/vite.config.ts`.
 
@@ -119,7 +120,7 @@ curl -b cookies.txt http://localhost:3000/api/auth/get-session
 curl -b cookies.txt -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -d '{}' http://localhost:3000/api/auth/sign-out
 ```
 
-The existing Vite `/api` proxy supports same-origin browser requests. The local Vite origin `http://localhost:5173` is trusted; the configured Better Auth base URL is trusted automatically. Use the same-origin deployment in production and update `BETTER_AUTH_URL` accordingly.
+The existing Vite `/api` proxy supports same-origin browser requests. Set `BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:5173` in `server/.env` for local development. For multiple frontend origins, separate them with commas, for example `https://help.example.com,https://admin.example.com`. The configured Better Auth base URL is trusted automatically. Use the same-origin deployment in production and update `BETTER_AUTH_URL` accordingly. Restart the server after changing these settings.
 
 To run the database-backed HTTP smoke test, generate Prisma Client, then run `npx tsx scripts/smoke-auth.ts` from `server/`. It provisions a temporary user directly in PostgreSQL, verifies that public sign-up is blocked, hashed passwords, incorrect-password rejection, sign-in, persisted sessions, and sign-out revocation, then removes its user and related records.
 
