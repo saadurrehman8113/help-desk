@@ -175,3 +175,34 @@ test("successful logout redirects and back/forward cannot restore protected cont
   );
   expect(screen.queryByRole("navigation")).toBeNull();
 });
+
+test("login validation blocks empty fields and focuses the email input", async () => {
+  setup("/login");
+  fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+  expect(await screen.findByText("Email address is required.")).toBeTruthy();
+  expect(screen.getByText("Password is required.")).toBeTruthy();
+  expect(signIn.email).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Email address").getAttribute("aria-invalid")).toBe("true");
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Email address")));
+});
+
+test("invalid email does not reach authentication", async () => {
+  setup("/login");
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "invalid" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
+  fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+  expect(await screen.findByText("Enter a valid email address.")).toBeTruthy();
+  expect(signIn.email).not.toHaveBeenCalled();
+});
+
+test("login trims email, preserves password and honors remember-me while showing auth errors", async () => {
+  vi.mocked(signIn.email).mockResolvedValue({ data: null, error: { status: 401, message: "Invalid credentials" } } as Awaited<ReturnType<typeof signIn.email>>);
+  setup("/login");
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: " sam@example.com " } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: " password123 " } });
+  fireEvent.click(screen.getByLabelText("Keep me signed in"));
+  fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+  expect(await screen.findByText("The email or password is incorrect. Please try again.")).toBeTruthy();
+  expect(signIn.email).toHaveBeenCalledWith({ email: "sam@example.com", password: " password123 ", rememberMe: false });
+  expect((screen.getByRole("button", { name: "Sign in" }) as HTMLButtonElement).disabled).toBe(false);
+});

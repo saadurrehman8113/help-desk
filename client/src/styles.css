@@ -181,6 +181,12 @@ input:not([type="checkbox"]) {
   padding: 12px 14px;
   font-size: 14px;
 }
+input[aria-invalid="true"] {
+  border-color: #c43d32;
+}
+input[aria-invalid="true"]:focus-visible {
+  outline-color: #c43d32;
+}
 input::placeholder {
   color: #96a096;
 }

@@ -1,7 +1,23 @@
-﻿import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Link } from "react-router";
 import { signIn } from "../lib/auth-client";
 import { Brand } from "../components/Brand";
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email address is required.")
+    .pipe(z.email("Enter a valid email address.")),
+  password: z.string().min(1, "Password is required."),
+  rememberMe: z.boolean(),
+});
+
+type LoginValues = z.infer<typeof loginSchema>;
+
 function signInError(status: number) {
   if ([400, 401].includes(status))
     return "The email or password is incorrect. Please try again.";
@@ -12,31 +28,31 @@ function signInError(status: number) {
 }
 
 export function LoginPage() {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const {
+    register,
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors, isSubmitting: busy },
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "", rememberMe: true },
+  });
+
   const [showPassword, setShowPassword] = useState(false);
 
-  async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const fields = new FormData(event.currentTarget);
-    setBusy(true);
-    setError("");
+  async function login(values: LoginValues) {
+    clearErrors("root");
     try {
-      const result = await signIn.email({
-        email: String(fields.get("email")).trim(),
-        password: String(fields.get("password")),
-        rememberMe: fields.get("remember") === "on",
-      });
+      const result = await signIn.email(values);
       if (result.error) throw new Error(signInError(result.error.status));
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Unable to sign in. Please try again.",
-      );
-    } finally {
-      setBusy(false);
+      setError("root.server", {
+        message:
+          failure instanceof Error
+            ? failure.message
+            : "Unable to sign in. Please try again.",
+      });
     }
   }
 
@@ -76,22 +92,33 @@ export function LoginPage() {
           <p className="eyebrow">WELCOME BACK</p>
           <h2 id="login-title">Sign in to your workspace</h2>
           <p className="form-intro">Enter your details to get started.</p>
-          <form onSubmit={(event) => void login(event)}>
+          <form noValidate onSubmit={handleSubmit(login)}>
             <label htmlFor="email">Email address</label>
             <input
               id="email"
-              name="email"
+              {...register("email")}
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
               type="email"
               autoComplete="username"
               placeholder="you@company.com"
               required
               disabled={busy}
             />
+            {errors.email && (
+              <p id="email-error" className="error" role="alert">
+                {errors.email.message}
+              </p>
+            )}
             <label htmlFor="password">Password</label>
             <div className="password-field">
               <input
                 id="password"
-                name="password"
+                {...register("password")}
+                aria-invalid={!!errors.password}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="Enter your password"
@@ -108,18 +135,22 @@ export function LoginPage() {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+            {errors.password && (
+              <p id="password-error" className="error" role="alert">
+                {errors.password.message}
+              </p>
+            )}
             <label className="remember">
               <input
                 type="checkbox"
-                name="remember"
-                defaultChecked
+                {...register("rememberMe")}
                 disabled={busy}
               />
               Keep me signed in
             </label>
-            {error && (
+            {errors.root?.server && (
               <p className="error" role="alert">
-                {error}
+                {errors.root.server.message}
               </p>
             )}
             <button className="submit" type="submit" disabled={busy}>
