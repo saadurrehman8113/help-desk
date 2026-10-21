@@ -200,7 +200,7 @@ test("login trims email, preserves password and honors remember-me while showing
   setup("/login");
   fireEvent.change(screen.getByLabelText("Email address"), { target: { value: " sam@example.com " } });
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: " password123 " } });
-  fireEvent.click(screen.getByLabelText("Keep me signed in"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Keep me signed in" }));
   fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
   expect(await screen.findByText("The email or password is incorrect. Please try again.")).toBeTruthy();
   expect(signIn.email).toHaveBeenCalledWith({ email: "sam@example.com", password: " password123 ", rememberMe: false });
