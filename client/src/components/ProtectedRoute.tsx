@@ -7,7 +7,12 @@ export type AuthenticatedSession = NonNullable<
   ReturnType<typeof useSession>["data"]
 >;
 
-function SessionGuard({ guestOnly = false }: { guestOnly?: boolean }) {
+type SessionGuardProps = {
+  guestOnly?: boolean;
+  requiredRole?: AuthenticatedSession["user"]["role"];
+};
+
+function SessionGuard({ guestOnly = false, requiredRole }: SessionGuardProps) {
   const {
     data: session,
     isPending,
@@ -40,6 +45,9 @@ function SessionGuard({ guestOnly = false }: { guestOnly?: boolean }) {
   }
 
   if (guestOnly) return session ? <Navigate to="/" replace /> : <Outlet />;
+  if (session && requiredRole && session.user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
   return session ? (
     <Outlet context={session satisfies AuthenticatedSession} />
   ) : (
@@ -47,8 +55,8 @@ function SessionGuard({ guestOnly = false }: { guestOnly?: boolean }) {
   );
 }
 
-export function ProtectedRoute() {
-  return <SessionGuard />;
+export function ProtectedRoute({ requiredRole }: Pick<SessionGuardProps, "requiredRole">) {
+  return <SessionGuard requiredRole={requiredRole} />;
 }
 
 export function GuestRoute() {

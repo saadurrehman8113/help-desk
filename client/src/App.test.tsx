@@ -20,11 +20,11 @@ vi.mock("./lib/auth-client", () => ({
 const refetch = vi.fn();
 
 let state: ReturnType<typeof useSession>;
-function authenticate() {
+function authenticate(role: "admin" | "agent" = "agent") {
   state = {
     ...state,
     data: {
-      user: { id: "1", name: "Sam", email: "sam@example.com" },
+      user: { id: "1", name: "Sam", email: "sam@example.com", role },
       session: {},
     } as NonNullable<typeof state.data>,
   };
@@ -118,6 +118,93 @@ test("failed logout keeps the authenticated page and shows an error", async () =
 test("unknown routes show a not-found page", () => {
   setup("/missing");
   expect(screen.getByRole("heading", { name: "Page not found" })).toBeTruthy();
+});
+
+test("admins can access the users page", () => {
+  authenticate("admin");
+  setup("/users");
+  expect(screen.getByRole("heading", { name: "Users", level: 1 })).toBeTruthy();
+  expect(screen.getByTestId("location").textContent).toBe("/users");
+});
+
+test("admins keep the same navbar when navigating from home to users", () => {
+  authenticate("admin");
+  setup();
+  const navbar = screen.getByRole("navigation", { name: "Main navigation" });
+  fireEvent.click(screen.getByRole("link", { name: "Users" }));
+  expect(screen.getByRole("heading", { name: "Users", level: 1 })).toBeTruthy();
+  expect(screen.getByRole("navigation", { name: "Main navigation" })).toBe(navbar);
+  expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
+});
+
+test("agents do not see the users navbar link", () => {
+  authenticate("agent");
+  setup();
+  expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Users" })).toBeNull();
+});
+
+test("failed logout on users shows an error and keeps the page", async () => {
+  authenticate("admin");
+  vi.mocked(signOut).mockResolvedValue({
+    error: { message: "Failed", status: 500 },
+    data: null,
+  } as Awaited<ReturnType<typeof signOut>>);
+  setup("/users");
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  expect(await screen.findByRole("alert")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Users" })).toBeTruthy();
+  expect(screen.getByTestId("location").textContent).toBe("/users");
+});
+
+test.each(["agent", undefined] as const)("users with role %s cannot access the users page", async (role) => {
+  authenticate();
+  if (role === undefined) {
+    Reflect.deleteProperty(state.data!.user, "role");
+  }
+  setup("/users");
+  expect(await screen.findByText("Welcome back, Sam.")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Users" })).toBeNull();
+  expect(screen.getByTestId("location").textContent).toBe("/");
+});
+
+test("anonymous visitors to users are redirected to login", async () => {
+  setup("/users");
+  expect(await screen.findByLabelText("Email address")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Users" })).toBeNull();
+  expect(screen.getByTestId("location").textContent).toBe("/login");
+});
+
+test("users page waits for the session before checking admin access", () => {
+  authenticate("admin");
+  state.isPending = true;
+  setup("/users");
+  expect(screen.getByText("Loading your workspace...")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Users" })).toBeNull();
+  expect(screen.getByTestId("location").textContent).toBe("/users");
+});
+
+test("session errors block the users page even for admins", () => {
+  authenticate("admin");
+  state.error = { message: "Unavailable", status: 503 } as typeof state.error;
+  setup("/users");
+  expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Users" })).toBeNull();
+});
+
+test("losing the admin role removes access to the users page", async () => {
+  authenticate("admin");
+  const view = setup("/users");
+  authenticate("agent");
+  view.rerender(
+    <MemoryRouter initialEntries={["/users"]}>
+      <App />
+      <Location />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText("Welcome back, Sam.")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Users" })).toBeNull();
+  expect(screen.getByTestId("location").textContent).toBe("/");
 });
 test("successful sign-in transitions through session state to home", async () => {
   vi.mocked(signIn.email).mockImplementation(async () => {

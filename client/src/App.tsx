@@ -3,12 +3,19 @@ import { Link, Route, Routes } from "react-router";
 import { GuestRoute, ProtectedRoute } from "./components/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { UsersPage } from "./pages/UsersPage";
+import { AppLayout } from "./components/AppLayout";
 
 export function App() {
   return (
     <Routes>
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<HomePage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route element={<ProtectedRoute requiredRole="admin" />}>
+            <Route path="/users" element={<UsersPage />} />
+          </Route>
+        </Route>
       </Route>
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
