@@ -3,8 +3,10 @@
 ## Frontend
 
 - React with TypeScript
-- Tailwind CSS
+- Tailwind CSS v4 with the Vite plugin
+- shadcn/ui (Base UI, Nova style, default neutral theme, Geist font)
 - React Router
+- React Hook Form with Zod validation
 
 ## Backend
 
