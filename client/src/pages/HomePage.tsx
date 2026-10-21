@@ -26,7 +26,7 @@ export function HomePage() {
   }
   return (
     <>
-      <header className="border-b border-border bg-card">
+      <header className="dark border-b border-border bg-background text-foreground">
         <nav
           aria-label="Main navigation"
           className="mx-auto flex max-w-[1180px] items-center justify-between gap-3 p-4 min-[761px]:gap-6 min-[761px]:px-7 min-[761px]:py-5"
