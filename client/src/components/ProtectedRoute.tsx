@@ -17,17 +17,21 @@ function SessionGuard({ guestOnly = false }: { guestOnly?: boolean }) {
 
   if (isPending || error) {
     return (
-      <main className="session-screen" aria-live="polite">
-        <div className="brand">
+      <main className="mx-auto max-w-[560px] px-7 py-20" aria-live="polite">
+        <div className="inline-flex items-center gap-3 text-[19px] font-bold">
           <Brand />
         </div>
-        <p>
+        <p className="my-[30px] leading-[1.7] text-[#60716c]">
           {isPending
             ? "Loading your workspace..."
             : "Unable to load your session. Please check your connection."}
         </p>
         {error && (
-          <button disabled={isRefetching} onClick={() => void refetch()}>
+          <button
+            className="cursor-pointer rounded-lg bg-[#193f33] px-5 py-[13px] font-semibold text-white hover:bg-[#28624f] disabled:cursor-wait disabled:opacity-65"
+            disabled={isRefetching}
+            onClick={() => void refetch()}
+          >
             Try again
           </button>
         )}

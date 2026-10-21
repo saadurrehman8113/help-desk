@@ -15,9 +15,11 @@ export function App() {
       <Route
         path="*"
         element={
-          <main className="session-screen">
-            <h1>Page not found</h1>
-            <p>The page you requested does not exist.</p>
+          <main className="mx-auto max-w-[560px] px-7 py-20">
+            <h1 className="my-[0.67em] text-[2em] font-bold">Page not found</h1>
+            <p className="my-[30px] leading-[1.7] text-[#60716c]">
+              The page you requested does not exist.
+            </p>
             <Link to="/">Go to home</Link>
           </main>
         }
