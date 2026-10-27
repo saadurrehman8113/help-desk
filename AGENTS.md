@@ -38,7 +38,7 @@ Updated: 2026-10-28.
 ## Reusable agents
 
 - `.codex/agents/security-reviewer.toml`: reviews security issues and reports findings without editing application files.
-- `.codex/agents/playwright-e2e.toml`: writes, maintains, runs, and debugs browser tests.
+- Use the `playwright-e2e` subagent defined in `.codex/agents/playwright-e2e.toml` when writing or updating Playwright E2E tests. Follow its testing instructions for implementation and verification.
 - `.codex/agents/project-info-updater.toml`: verifies repository facts and updates this file.
 
 Testing instructions and verification history live in `.codex/agents/playwright-e2e.toml`.

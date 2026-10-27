@@ -21,14 +21,14 @@ Documentation and test design
 
 Project testing reference
 - Previous verification after the shared navbar change: client production build and all 22 client tests passed. Tests cover admin-only access, session failures/loading, role loss, navbar persistence across navigation, agent link visibility, and logout errors on Users.
-- Latest verification: E2E type-check and all 11 Chromium Playwright tests passed. The browser run also verified test database setup, migrations, admin seeding, and test API/frontend startup. Existing unit test suites and production builds were not rerun for the browser test additions. Earlier server/client configuration type-checks passed.
+- Latest verification (2026-10-28): all 60 Playwright tests passed (35 browser, 25 API), all 25 client tests passed, and all four server tests passed. Client and E2E type-checks passed. The Playwright run prepared the dedicated test database and started the test servers. Production builds were not rerun for these test additions.
 - Client checks: `npm.cmd run build -w client` and `npm.cmd test -w client`.
 - Root `npm.cmd test` runs server tests only.
 
 Playwright and test database
 - Playwright (`@playwright/test`) is configured at the workspace root in `playwright.config.mts`, with Chromium, one worker, CI retries, list/HTML reports, traces on first retry, and screenshots on failure.
-- `e2e/auth.spec.ts` contains 11 browser tests covering signed-out redirects, login validation and retry, password visibility, remember-me cookie behavior, session persistence and guest redirects, navigation/logout, admin/agent access, and session/logout error recovery. Authentication and role tests use the real test API/database; failure recovery tests intercept the relevant requests.
-- `e2e/fixtures.ts` provides login helpers and a temporary agent fixture. The fixture independently guards the database name as `help-desk-test`, copies the seeded admin's password hash into a unique agent credential account, and deletes its user plus cascading accounts/sessions afterward. It does not modify existing users.
+- Browser coverage: `e2e/auth.spec.ts` contains the original 11 auth/navigation cases; `e2e/auth-edge-cases.spec.ts` adds 24 cases covering normalization, keyboard submission, pending/duplicate requests, error recovery, session loading, expiry/revocation/deletion, role changes and invalid roles, cookie tampering/visibility, and history after logout. `e2e/auth-api.spec.ts` adds 25 real API cases covering validation, invalid credentials, missing credential accounts/passwords, disabled signup, hashed credentials and safe responses, role input tampering, and logout isolation/replay/idempotence.
+- `e2e/fixtures.ts` provides login helpers and isolated temporary-user fixtures. The fixture independently guards the database name as `help-desk-test`, copies the seeded admin password hash into a unique credential account, and deletes its user plus cascading accounts/sessions afterward. Lifecycle helpers mutate only that fixture user. Expiry uses an explicit UTC epoch timestamp because PostgreSQL local NOW() assigned to a timezone-free timestamp can appear in the future to Prisma. Existing seeded users are not modified by these helpers.
 - Root commands: `npm.cmd run test:e2e`, `npm.cmd run test:e2e:ui`, `npm.cmd run test:e2e:report`, `npm.cmd run test:e2e:install`, and `npm.cmd run typecheck:e2e`. List discovered tests with `npm.cmd run test:e2e -- --list`. The E2E type-check uses `tsconfig.e2e.json` and is separate from the workspace type-check command.
 - Copy `.env.e2e.example` to the ignored root `.env.e2e` and configure `TEST_DATABASE_URL`, or supply it through the environment in CI. A local `.env.e2e` was created using the existing PostgreSQL credentials with the database changed to `help-desk-test`; never commit its credentials.
 - `server/scripts/e2e-env.ts` requires `TEST_DATABASE_URL` to target PostgreSQL database `help-desk-test`, never falls back to the development `DATABASE_URL`, and sets `NODE_ENV=test` plus dedicated API/auth/seed settings.
@@ -37,6 +37,8 @@ Playwright and test database
 - Playwright prepares the database before launching the test API through `npm run start:e2e -w server` on port 3100, and starts Vite on port 5174. Both servers use `reuseExistingServer: false`; occupied test ports cause an error. Playwright manages their shutdown.
 - `client/vite.config.ts` accepts `E2E_API_PROXY_TARGET` for the test API proxy; its default remains `http://localhost:3000` for development.
 - `.gitignore` excludes local environment files, `playwright-report/`, `test-results/`, `blob-report/`, and `playwright/.cache/`, while allowing `.env.e2e.example` to be committed. Setup and usage instructions are in `README.md`.
+
+- Coverage limits: 429 responses are mocked to test UI mapping; the production rate limiter is not exercised. Better Auth bypasses origin/CSRF checks by default in NODE_ENV=test, so those rejections are not verified here. HTTP tests do not verify HTTPS Secure-cookie enforcement. Password reset/email verification and other unconfigured or future features are outside this suite.
 
 Test environment safeguards
 - Never repoint tests to development or production, reuse development servers, or terminate unrelated processes to free ports. Never fall back to DATABASE_URL.

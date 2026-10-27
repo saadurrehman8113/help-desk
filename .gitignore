@@ -5,7 +5,7 @@ dist/
 !.env.example
 !.env.e2e.example
 playwright-report/
-test-results/
+/e2e/test-results/
 blob-report/
 playwright/.cache/
 *.log

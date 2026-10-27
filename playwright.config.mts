@@ -3,6 +3,7 @@ import { e2eEnv } from './server/scripts/e2e-env.js';
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: './e2e/test-results',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

@@ -293,3 +293,50 @@ test("login trims email, preserves password and honors remember-me while showing
   expect(signIn.email).toHaveBeenCalledWith({ email: "sam@example.com", password: " password123 ", rememberMe: false });
   expect((screen.getByRole("button", { name: "Sign in" }) as HTMLButtonElement).disabled).toBe(false);
 });
+
+test.each([
+  { failure: new Error("Connection interrupted"), message: "Connection interrupted" },
+  { failure: null, message: "Unable to sign in. Please try again." },
+])("login recovers from a rejected auth request: $message", async ({ failure, message }) => {
+  vi.mocked(signIn.email)
+    .mockRejectedValueOnce(failure)
+    .mockImplementationOnce(async () => {
+      authenticate();
+      return { data: {}, error: null } as Awaited<ReturnType<typeof signIn.email>>;
+    });
+  const view = setup("/login");
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "sam@example.com" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  expect(await screen.findByText(message)).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Sign in" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByLabelText("Password") as HTMLInputElement).value).toBe("password123");
+
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  await waitFor(() => expect(signIn.email).toHaveBeenCalledTimes(2));
+  view.rerender(<MemoryRouter><App /><Location /></MemoryRouter>);
+  expect(await screen.findByText("Welcome back, Sam.")).toBeTruthy();
+  expect(screen.queryByText(message)).toBeNull();
+});
+
+test("a rejected logout request preserves the session and can be retried", async () => {
+  authenticate("admin");
+  vi.mocked(signOut)
+    .mockRejectedValueOnce(new Error("Connection interrupted"))
+    .mockImplementationOnce(async () => {
+      state = { ...state, data: null };
+      return { data: { success: true }, error: null } as Awaited<ReturnType<typeof signOut>>;
+    });
+  const view = setup("/users");
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  expect(await screen.findByText("Unable to log out. Please try again.")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Users" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Log out" }) as HTMLButtonElement).disabled).toBe(false);
+
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await waitFor(() => expect(signOut).toHaveBeenCalledTimes(2));
+  view.rerender(<MemoryRouter initialEntries={["/users"]}><App /><Location /></MemoryRouter>);
+  expect(await screen.findByLabelText("Email address")).toBeTruthy();
+  expect(screen.queryByRole("navigation")).toBeNull();
+  expect(screen.queryByText("Unable to log out. Please try again.")).toBeNull();
+});
