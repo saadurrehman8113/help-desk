@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.e2e.json",
+  "include": ["e2e-env.ts", "setup-e2e.ts"]
+}

@@ -46,6 +46,34 @@ npm test
 npm run build
 ```
 
+## Browser testing setup
+
+Playwright is configured at the workspace root for Chromium. Browser tests in `e2e/` cover login validation and retry, password visibility, remember-me cookies, session persistence, protected routes, admin/agent access, navigation, logout, and session/logout error recovery. Existing unit test commands are unchanged.
+
+1. Copy `.env.e2e.example` to `.env.e2e` and enter your PostgreSQL credentials. `TEST_DATABASE_URL` must target a separate database named `help-desk-test`; it never falls back to `DATABASE_URL`. The file is ignored by Git. In CI, supply `TEST_DATABASE_URL` as an environment variable instead.
+2. Install the browser and prepare the database:
+
+```sh
+npm run test:e2e:install
+npm run db:setup:e2e -w server
+```
+
+The setup creates `help-desk-test` through PostgreSQL's `postgres` maintenance database if needed, generates Prisma Client, applies committed migrations, and seeds a test admin. The PostgreSQL role needs `CREATEDB` on first setup, or you can create the database beforehand with that role as owner. It requires access to the maintenance database either way. Setup preserves existing test data; it does not reset the database. The admin seed updates its password and revokes its sessions on each run.
+
+The test-only admin is `admin@example.test` with password `HelpDesk-e2e-password-123!`. These credentials and the test auth secret are configured in `server/scripts/e2e-env.ts` and are only for the test environment.
+
+```sh
+npm run typecheck:e2e
+npm run test:e2e -- --list
+npm run test:e2e
+npm run test:e2e:ui
+npm run test:e2e:report
+```
+
+Playwright starts its own API on port 3100 and frontend on port 5174, prepares the test database before API startup, and shuts down both servers afterward. Occupied test ports cause an error; development servers are never reused. The frontend proxies `/api` to the test API. One worker avoids concurrent changes to the shared test database. The agent fixture creates a unique test user using the seeded admin's password hash, then deletes that user and its related accounts/sessions afterward. Its database guard requires `help-desk-test`. Reports and test artifacts are ignored by Git.
+
+Configuration follows the [Playwright web server documentation](https://playwright.dev/docs/test-webserver) and [Prisma migration deployment documentation](https://www.prisma.io/docs/orm/prisma-migrate/workflows/development-and-production), fetched through Context7.
+
 ## Production
 
 After building, set `NODE_ENV=production` and run `npm start`. Express serves the built client and API on port 3000.

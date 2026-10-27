@@ -6,6 +6,7 @@ import { Role } from './generated/prisma/enums.js';
 
 export const auth = betterAuth({
   database: prismaAdapter(getDatabase(), { provider: 'postgresql' }),
+  rateLimit: { enabled: process.env.NODE_ENV === 'production' },
   emailAndPassword: { enabled: true, disableSignUp: true },
   user: {
     additionalFields: {
