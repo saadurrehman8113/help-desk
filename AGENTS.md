@@ -1,16 +1,17 @@
 # Project instructions and context
 
-Updated: 2026-10-28.
+Updated: 2026-10-29.
 
 ## Project
 
 - Help Desk is a TypeScript npm workspace with a React/Vite client and an Express server backed by Prisma 7 and PostgreSQL.
 - Product scope is in `project-scope.md`; future work is outlined in `implementation-plan.md`. Planned features should not be treated as implemented.
-- Existing screens: login, authenticated home (`/`), admin-only Users (`/users`, currently just a heading), session loading/error, and not-found.
+- Existing screens: login, authenticated home (`/`), admin-only Users (`/users`) with a read-only paginated list, session loading/error, and not-found.
 - Authentication uses Better Auth with database sessions, email/password login, and protected/guest route guards. Login validation uses React Hook Form and Zod. Public signup is disabled. Users have admin/agent roles.
 - Better Auth rate limiting is explicitly enabled only when `NODE_ENV === 'production'` in `server/src/auth.ts`; it is disabled in development and test environments.
 - `ProtectedRoute` accepts `requiredRole`; `/users` requires `admin`. Signed-out visitors redirect to `/login`; authenticated users without the required role redirect to `/`. Pending or failed session checks block page content.
-- The auth client uses `inferAdditionalFields` to type the server-owned `role` field. Keep its schema aligned with `server/src/auth.ts`; role input is disabled. The current restriction guards the client route; user-management APIs and server-side role authorization remain future work.
+- The auth client uses `inferAdditionalFields` to type the server-owned `role` field. Keep its schema aligned with `server/src/auth.ts`; role input is disabled. The Users route and list API both require admin access. Account creation, editing, role changes, deactivation, and password management remain future work.
+- `GET /api/users?page=1` returns `{ users, page, pageSize, total }` with 20 users per page, ordered by creation date descending then ID ascending. It selects only ID, name, email, role, and creation date. Missing/expired sessions return 401, non-admins 403, and invalid or unsupported page values 400. Responses use `Cache-Control: no-store`.
 - `server/src/app.ts` mounts Better Auth at `/api/auth/{*path}` before the JSON body parser. The implemented health endpoints are `/api/health` and `/api/health/database`; ticket, AI, and email features remain planned.
 
 ## UI decisions
@@ -24,6 +25,7 @@ Updated: 2026-10-28.
 - `client/src/components/AppLayout.tsx` provides the shared navbar and logout handling for Home and Users. Add future authenticated pages under this layout in `App.tsx` and forward session context through its Outlet. Login, session loading/error, and not-found remain outside the layout.
 - The shared navbar uses a locally scoped `dark` theme with `bg-background text-foreground`, inverting its background, text, brand, avatar, and logout button. Page content retains the light theme. The Users link is visible only to admins.
 - The remember-me Checkbox is controlled through React Hook Form's Controller.
+- The Users page includes loading, empty, retry, and pagination states. It refreshes the session on API 401 before redirecting to login; API 403 redirects home. Pagination resets to page 1 when the page mounts. Dates use the browser locale.
 
 ## Development
 

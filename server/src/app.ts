@@ -6,11 +6,13 @@ import path from 'node:path';
 import { getDatabase } from './database.js';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './auth.js';
+import { usersRouter } from './users.js';
 
 export const app = express();
 app.disable('x-powered-by');
 app.all('/api/auth/{*path}', toNodeHandler(auth));
 app.use(express.json({ limit: '1mb' }));
+app.use('/api/users', usersRouter);
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok', service: 'help-desk-api' });

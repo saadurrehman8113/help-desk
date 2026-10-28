@@ -49,6 +49,10 @@ function setup(path = "/") {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ users: [], page: 1, pageSize: 20, total: 0 }),
+  }));
   state = {
     data: null,
     isPending: false,
@@ -58,7 +62,7 @@ beforeEach(() => {
   };
   vi.mocked(useSession).mockImplementation(() => state);
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 test("anonymous visitors to home are redirected to login", async () => {
   setup();
