@@ -5,6 +5,7 @@ import { Navigate } from "react-router";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 
 type UsersResult = {
@@ -19,6 +20,38 @@ type UsersResult = {
   pageSize: number;
   total: number;
 };
+
+function UsersTableSkeleton() {
+  return (
+    <div role="status">
+      <span className="sr-only">Loading users...</span>
+      <div aria-hidden="true">
+        <Skeleton className="mb-4 h-5 w-20" />
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border text-muted-foreground">
+              <tr>
+                {["Name", "Email", "Role", "Created"].map(label => (
+                  <th key={label} className="px-4 py-3 font-medium">{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }, (_, index) => (
+                <tr key={index} className="border-b border-border last:border-0">
+                  <td className="px-4 py-4"><Skeleton className="h-5 w-28" /></td>
+                  <td className="px-4 py-4"><Skeleton className="h-5 w-44" /></td>
+                  <td className="px-4 py-4"><Skeleton className="h-5 w-12" /></td>
+                  <td className="px-4 py-4"><Skeleton className="h-5 w-20" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function UsersPage() {
   const { data: session, refetch: refetchSession } = useSession();
@@ -74,9 +107,7 @@ export function UsersPage() {
       <Card className="mt-8">
         <CardContent>
           <div aria-live="polite" aria-busy={loading}>
-            {loading && (
-              <p className="py-8 text-muted-foreground">Loading users...</p>
-            )}
+            {loading && <UsersTableSkeleton />}
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>

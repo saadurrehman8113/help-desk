@@ -20,7 +20,7 @@ Updated: 2026-10-29.
 - Tailwind CSS 4.3.3 is integrated through `@tailwindcss/vite`.
 - shadcn/ui is initialized in `client/components.json` using its current defaults: `base-nova`, neutral base color, CSS variables, Lucide icons, and Geist Variable font.
 - `client/src/styles.css` now contains the generated shadcn theme, base styles, and imports. Keep these standard theme definitions; use semantic utilities such as `bg-background`, `text-foreground`, `text-muted-foreground`, and `border-border` instead of the former green palette.
-- Installed UI components live in `client/src/components/ui/`: Button, Input, Label, Checkbox, Card, and Alert. Use these for corresponding controls and surfaces.
+- Installed UI components live in `client/src/components/ui/`: Button, Input, Label, Checkbox, Card, Alert, and Skeleton. Use these for corresponding controls and surfaces. The Users page shows table skeleton rows while loading, with a screen-reader loading status and reduced-motion support.
 - The `@/*` alias resolves to `client/src/*` in TypeScript and Vite. `client/src/lib/utils.ts` re-exports `cn`.
 - `client/src/components/AppLayout.tsx` provides the shared navbar and logout handling for Home and Users. Add future authenticated pages under this layout in `App.tsx` and forward session context through its Outlet. Login, session loading/error, and not-found remain outside the layout.
 - The shared navbar uses a locally scoped `dark` theme with `bg-background text-foreground`, inverting its background, text, brand, avatar, and logout button. Page content retains the light theme. The Users link is visible only to admins.
