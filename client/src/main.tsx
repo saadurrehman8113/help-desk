@@ -2,12 +2,15 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { App } from "./App";
+import { QueryProvider } from "./components/QueryProvider";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <QueryProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryProvider>
   </StrictMode>,
 );

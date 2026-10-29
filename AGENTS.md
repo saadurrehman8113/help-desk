@@ -25,7 +25,7 @@ Updated: 2026-10-29.
 - `client/src/components/AppLayout.tsx` provides the shared navbar and logout handling for Home and Users. Add future authenticated pages under this layout in `App.tsx` and forward session context through its Outlet. Login, session loading/error, and not-found remain outside the layout.
 - The shared navbar uses a locally scoped `dark` theme with `bg-background text-foreground`, inverting its background, text, brand, avatar, and logout button. Page content retains the light theme. The Users link is visible only to admins.
 - The remember-me Checkbox is controlled through React Hook Form's Controller.
-- The Users page includes loading, empty, retry, and pagination states. It refreshes the session on API 401 before redirecting to login; API 403 redirects home. Pagination resets to page 1 when the page mounts. Dates use the browser locale.
+- `QueryProvider` wraps the application with a stable TanStack Query client. The Users page uses `useQuery` with Axios, passing the query's AbortSignal for cancellation. Query keys include the signed-in user ID and page; unused user-list queries are immediately garbage-collected. Automatic retries are disabled in favor of the retry button. The page includes loading, empty, retry, and pagination states, refreshes the session on API 401 before redirecting to login, and redirects home on API 403. Pagination resets to page 1 when the page mounts. Dates use the browser locale.
 
 ## Development
 

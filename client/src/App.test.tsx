@@ -10,6 +10,13 @@ import {
 import { MemoryRouter, useLocation, useNavigate } from "react-router";
 import { App } from "./App";
 import { signIn, signOut, useSession } from "./lib/auth-client";
+import axios from "axios";
+import { QueryProvider } from "./components/QueryProvider";
+
+vi.mock("axios", async importOriginal => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return { ...actual, default: { ...actual.default, get: vi.fn() } };
+});
 
 vi.mock("./lib/auth-client", () => ({
   useSession: vi.fn(),
@@ -45,14 +52,14 @@ function setup(path = "/") {
       <App />
       <Location />
     </MemoryRouter>,
+    { wrapper: QueryProvider },
   );
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ users: [], page: 1, pageSize: 20, total: 0 }),
-  }));
+  vi.mocked(axios.get).mockResolvedValue({
+    data: { users: [], page: 1, pageSize: 20, total: 0 },
+  });
   state = {
     data: null,
     isPending: false,
@@ -62,7 +69,21 @@ beforeEach(() => {
   };
   vi.mocked(useSession).mockImplementation(() => state);
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(cleanup);
+
+test("switching admins reloads users without reusing the previous account's results", async () => {
+  authenticate("admin");
+  const listedUser = { id: "listed", name: "First team member", email: "first@example.test", role: "agent", createdAt: "2026-10-01T00:00:00.000Z" };
+  vi.mocked(axios.get).mockResolvedValueOnce({ data: { users: [listedUser], page: 1, pageSize: 20, total: 1 } });
+  const view = setup("/users");
+  await screen.findByRole("cell", { name: listedUser.email });
+  state = { ...state, data: { ...state.data!, user: { ...state.data!.user, id: "second-admin" } } };
+  vi.mocked(axios.get).mockResolvedValueOnce({ data: { users: [], page: 1, pageSize: 20, total: 0 } });
+  view.rerender(<MemoryRouter initialEntries={["/users"]}><App /><Location /></MemoryRouter>);
+  expect(screen.queryByRole("cell", { name: listedUser.email })).toBeNull();
+  expect(await screen.findByText("No users yet.")).toBeTruthy();
+  expect(axios.get).toHaveBeenCalledTimes(2);
+});
 
 test("anonymous visitors to home are redirected to login", async () => {
   setup();
